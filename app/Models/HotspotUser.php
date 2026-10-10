@@ -19,6 +19,15 @@ class HotspotUser extends Model
         'last_sync_message',
     ];
 
+    protected $hidden = [
+        'password',
+    ];
+
+    protected $casts = [
+        'password' => 'encrypted',
+        'router_synced' => 'boolean',
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class);

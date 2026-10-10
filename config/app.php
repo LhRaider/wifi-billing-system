@@ -22,7 +22,7 @@ return [
     |
     | This value determines the "environment" your application is currently
     | running in. This may determine how you prefer to configure various
-    | services the application utilizes. Set this in your ".env" file.
+    | services your application utilizes. Set this in your ".env" file.
     |
     */
 
@@ -35,7 +35,7 @@ return [
     |
     | When your application is in debug mode, detailed error messages with
     | stack traces will be shown on every error that occurs within your
-    | application. If disabled, a simple generic error page is shown.
+    | application. If disabled, a generic error page will be displayed.
     |
     */
 
@@ -47,8 +47,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | This URL is used by the console to properly generate URLs when using
-    | the Artisan command line tool. You should set this to the root of
-    | the application so that it's available within Artisan commands.
+    | Artisan commands. Configure the production HTTPS URL in the .env file
+    | when the application is deployed.
     |
     */
 
@@ -58,11 +58,6 @@ return [
     |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
-    |
-    | Here you may specify the default timezone for your application, which
-    | will be used by the PHP date and date-time functions. The timezone
-    | is set to "UTC" by default as it is suitable for most use cases.
-    |
     */
 
     'timezone' => env('APP_TIMEZONE', 'Africa/Nairobi'),
@@ -71,11 +66,6 @@ return [
     |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
-    |
-    | The application locale determines the default locale that will be used
-    | by Laravel's translation / localization methods. This option can be
-    | set to any locale for which you plan to have translation strings.
-    |
     */
 
     'locale' => env('APP_LOCALE', 'en'),
@@ -86,12 +76,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Encryption Key
+    | Encryption
     |--------------------------------------------------------------------------
     |
-    | This key is utilized by Laravel's encryption services and should be set
-    | to a random, 32 character string to ensure that all encrypted values
-    | are secure. You should do this prior to deploying the application.
+    | APP_KEY is the application's current encryption key. APP_PREVIOUS_KEYS
+    | may contain previous keys temporarily during a controlled key rotation.
     |
     */
 
@@ -107,20 +96,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Maintenance Mode Driver
+    | Maintenance Mode
     |--------------------------------------------------------------------------
     |
-    | These configuration options determine the driver used to determine and
-    | manage Laravel's "maintenance mode" status. The "cache" driver will
-    | allow maintenance mode to be controlled across multiple machines.
-    |
-    | Supported drivers: "file", "cache"
+    | The file driver is appropriate for a single application server.
+    | A shared cache-backed maintenance state can be configured when running
+    | the application across multiple production servers.
     |
     */
 
     'maintenance' => [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
-        'store' => env('APP_MAINTENANCE_STORE', 'databsae'),
+        'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
 ];

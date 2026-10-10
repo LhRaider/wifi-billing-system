@@ -3,7 +3,7 @@
 use App\Models\User;
 
 test('profile page is displayed', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->admin()->create();
 
     $response = $this
         ->actingAs($user)
@@ -13,7 +13,7 @@ test('profile page is displayed', function () {
 });
 
 test('profile information can be updated', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->admin()->create();
 
     $response = $this
         ->actingAs($user)
@@ -34,7 +34,7 @@ test('profile information can be updated', function () {
 });
 
 test('email verification status is unchanged when the email address is unchanged', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->admin()->create();
 
     $response = $this
         ->actingAs($user)
@@ -47,14 +47,20 @@ test('email verification status is unchanged when the email address is unchanged
         ->assertSessionHasNoErrors()
         ->assertRedirect('/profile');
 
-    $this->assertNotNull($user->refresh()->email_verified_at);
+    $this->assertNotNull(
+        $user->refresh()->email_verified_at
+    );
 });
 
-test('user can delete their account', function () {
-    $user = User::factory()->create();
+test('customer can delete their own account with correct password', function () {
+    $admin = User::factory()->admin()->create();
+
+    $customer = User::factory()
+        ->customer($admin)
+        ->create();
 
     $response = $this
-        ->actingAs($user)
+        ->actingAs($customer)
         ->delete('/profile', [
             'password' => 'password',
         ]);
@@ -64,22 +70,62 @@ test('user can delete their account', function () {
         ->assertRedirect('/');
 
     $this->assertGuest();
-    $this->assertNull($user->fresh());
+    $this->assertNull($customer->fresh());
+
+    $this->assertNotNull($admin->fresh());
 });
 
-test('correct password must be provided to delete account', function () {
-    $user = User::factory()->create();
+test('correct password must be provided for customer account deletion', function () {
+    $admin = User::factory()->admin()->create();
+
+    $customer = User::factory()
+        ->customer($admin)
+        ->create();
 
     $response = $this
-        ->actingAs($user)
+        ->actingAs($customer)
         ->from('/profile')
         ->delete('/profile', [
             'password' => 'wrong-password',
         ]);
 
     $response
-        ->assertSessionHasErrorsIn('userDeletion', 'password')
+        ->assertSessionHasErrorsIn(
+            'userDeletion',
+            'password'
+        )
         ->assertRedirect('/profile');
 
-    $this->assertNotNull($user->fresh());
+    $this->assertNotNull($customer->fresh());
+    $this->assertNotNull($admin->fresh());
+});
+
+test('ISP Admin cannot delete their account from personal profile', function () {
+    $admin = User::factory()->admin()->create();
+
+    $response = $this
+        ->actingAs($admin)
+        ->delete('/profile', [
+            'password' => 'password',
+        ]);
+
+    $response->assertForbidden();
+
+    $this->assertNotNull($admin->fresh());
+});
+
+test('Super Admin cannot delete their account from personal profile', function () {
+    $superAdmin = User::factory()
+        ->superAdmin()
+        ->create();
+
+    $response = $this
+        ->actingAs($superAdmin)
+        ->delete('/profile', [
+            'password' => 'password',
+        ]);
+
+    $response->assertForbidden();
+
+    $this->assertNotNull($superAdmin->fresh());
 });

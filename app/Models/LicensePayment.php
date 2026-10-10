@@ -12,6 +12,13 @@ class LicensePayment extends Model
         'amount',
         'payment_method',
         'transaction_code',
+
+        'checkout_request_id',
+        'merchant_request_id',
+        'mpesa_receipt',
+        'phone_number',
+        'paid_at',
+
         'start_date',
         'expiry_date',
         'status',
@@ -20,6 +27,7 @@ class LicensePayment extends Model
     protected $casts = [
         'start_date' => 'date',
         'expiry_date' => 'date',
+        'paid_at' => 'datetime',
     ];
 
     public function user()

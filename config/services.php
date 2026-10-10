@@ -7,10 +7,8 @@ return [
     | Third Party Services
     |--------------------------------------------------------------------------
     |
-    | This file is for storing the credentials for third party services such
-    | as Mailgun, Postmark, AWS and more. This file provides the de facto
-    | location for this type of information, allowing packages to have
-    | a conventional file to locate the various service credentials.
+    | Credentials and settings for external services belong here so application
+    | code can use config() instead of reading environment variables directly.
     |
     */
 
@@ -33,6 +31,51 @@ return [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Platform License M-Pesa
+    |--------------------------------------------------------------------------
+    |
+    | Used only for ISP Admin -> Super Admin platform license payments.
+    | Secrets remain in .env and are exposed to application code through
+    | Laravel's configuration layer.
+    |
+    */
+
+    'license_mpesa' => [
+        'environment' => env(
+            'LICENSE_MPESA_ENVIRONMENT',
+            'sandbox'
+        ),
+
+        'consumer_key' => env(
+            'LICENSE_MPESA_CONSUMER_KEY'
+        ),
+
+        'consumer_secret' => env(
+            'LICENSE_MPESA_CONSUMER_SECRET'
+        ),
+
+        'shortcode' => env(
+            'LICENSE_MPESA_SHORTCODE'
+        ),
+
+        'passkey' => env(
+            'LICENSE_MPESA_PASSKEY'
+        ),
+
+        'transaction_type' => env(
+            'LICENSE_MPESA_TRANSACTION_TYPE',
+            'CustomerPayBillOnline'
+        ),
+
+        'callback_url' => env(
+            'LICENSE_MPESA_CALLBACK_URL'
+        ),
+
+        'timeout' => 30,
     ],
 
 ];

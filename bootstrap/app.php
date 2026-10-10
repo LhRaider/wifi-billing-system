@@ -12,8 +12,46 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Web Session Authentication
+        |--------------------------------------------------------------------------
+        |
+        | AuthenticateSession detects password changes and prevents older
+        | authenticated browser sessions from continuing to use stale
+        | credentials.
+        |
+        */
+
+        $middleware->web(append: [
+            \Illuminate\Session\Middleware\AuthenticateSession::class,
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | M-Pesa Callback CSRF Exclusions
+        |--------------------------------------------------------------------------
+        |
+        | Safaricom callbacks originate outside the browser session and must
+        | therefore bypass normal CSRF verification.
+        |
+        */
+
+        $middleware->preventRequestForgery(except: [
+            'mpesa/callback',
+            'mpesa/license/callback',
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Application Middleware Aliases
+        |--------------------------------------------------------------------------
+        */
+
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'only.admin' => \App\Http\Middleware\OnlyAdminMiddleware::class,
             'super.admin' => \App\Http\Middleware\SuperAdminMiddleware::class,
             'active.subscription' => \App\Http\Middleware\CheckActiveSubscription::class,
             'suspended' => \App\Http\Middleware\CheckSuspendedUser::class,

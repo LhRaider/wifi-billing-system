@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Storage;
@@ -13,7 +13,7 @@ use Illuminate\View\View;
 class ProfileController extends Controller
 {
     /**
-     * Display profile page
+     * Display the authenticated user's profile.
      */
     public function edit(Request $request): View
     {
@@ -23,27 +23,51 @@ class ProfileController extends Controller
     }
 
     /**
-     * Update profile
+     * Update the authenticated user's personal profile.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
-    {
+    public function update(
+        ProfileUpdateRequest $request
+    ): RedirectResponse {
         $user = $request->user();
 
         $validated = $request->validated();
 
+        /*
+        |--------------------------------------------------------------------------
+        | Profile Photo
+        |--------------------------------------------------------------------------
+        */
+
         if ($request->hasFile('profile_photo')) {
 
             if (
-                $user->profile_photo &&
-                Storage::disk('public')->exists($user->profile_photo)
+                $user->profile_photo
+                &&
+                Storage::disk('public')
+                    ->exists($user->profile_photo)
             ) {
-                Storage::disk('public')->delete($user->profile_photo);
+                Storage::disk('public')
+                    ->delete($user->profile_photo);
             }
 
-            $validated['profile_photo'] = $request
-                ->file('profile_photo')
-                ->store('profile-photos', 'public');
+            $validated['profile_photo'] =
+                $request
+                    ->file('profile_photo')
+                    ->store(
+                        'profile-photos',
+                        'public'
+                    );
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Personal Profile Only
+        |--------------------------------------------------------------------------
+        |
+        | Business/payment settings are intentionally not handled here.
+        | ISP Admin business settings belong to BusinessProfileController.
+        |
+        */
 
         $user->fill($validated);
 
@@ -54,19 +78,43 @@ class ProfileController extends Controller
         $user->save();
 
         return Redirect::route('profile.edit')
-            ->with('success', 'Profile updated successfully.');
+            ->with(
+                'success',
+                'Profile updated successfully.'
+            );
     }
 
     /**
-     * Delete account
+     * Delete a customer account.
+     *
+     * ISP Admin and Super Admin accounts must not be removed through the
+     * ordinary personal profile page.
      */
-    public function destroy(Request $request): RedirectResponse
-    {
-        $request->validateWithBag('userDeletion', [
-            'password' => ['required', 'current_password'],
-        ]);
-
+    public function destroy(
+        Request $request
+    ): RedirectResponse {
         $user = $request->user();
+
+        if (
+            !$user
+            ||
+            $user->role !== 'customer'
+        ) {
+            abort(
+                403,
+                'Staff accounts cannot be deleted from this page.'
+            );
+        }
+
+        $request->validateWithBag(
+            'userDeletion',
+            [
+                'password' => [
+                    'required',
+                    'current_password',
+                ],
+            ]
+        );
 
         Auth::logout();
 
@@ -76,45 +124,5 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return Redirect::to('/');
-    }
-
-    /**
-     * Update Business Profile
-     */
-    public function updateBusiness(Request $request)
-    {
-        $request->validate([
-
-            'business_name'    => 'nullable|string|max:255',
-            'network_name'     => 'nullable|string|max:255',
-            'business_phone'   => 'nullable|string|max:30',
-            'business_address' => 'nullable|string|max:255',
-
-            'payment_type'     => 'nullable|in:till,paybill',
-
-            'business_till'    => 'nullable|string|max:50',
-            'business_paybill' => 'nullable|string|max:50',
-            'business_account' => 'nullable|string|max:50',
-
-        ]);
-
-        $user = auth()->user();
-
-        $user->update([
-
-            'business_name'    => $request->business_name,
-            'network_name'     => $request->network_name,
-            'business_phone'   => $request->business_phone,
-            'business_address' => $request->business_address,
-
-            'payment_type'     => $request->payment_type,
-
-            'business_till'    => $request->business_till,
-            'business_paybill' => $request->business_paybill,
-            'business_account' => $request->business_account,
-
-        ]);
-
-        return back()->with('success', 'Business profile updated successfully.');
     }
 }

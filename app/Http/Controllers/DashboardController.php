@@ -2,89 +2,212 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\HotspotUser;
 use App\Models\Payment;
 use App\Models\Subscription;
-use App\Models\HotspotUser;
-use App\Models\HotspotSession;
-use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function index()
+    /**
+     * Display the authenticated customer's dashboard.
+     */
+    public function index(): View|RedirectResponse
     {
         $user = Auth::user();
 
-        if (in_array($user->role, ['admin', 'super_admin'])) {
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Staff Accounts
+        |--------------------------------------------------------------------------
+        |
+        | ISP Admins and Super Admins use the administration dashboard.
+        |
+        */
+
+        if (in_array($user->role, ['admin', 'super_admin'], true)) {
             return redirect()->route('admin.dashboard');
         }
 
-        $activeSubscription = Subscription::where('user_id', $user->id)
+        /*
+        |--------------------------------------------------------------------------
+        | Customer Authorization
+        |--------------------------------------------------------------------------
+        |
+        | A valid customer must belong to an ISP Admin tenant.
+        |
+        */
+
+        if ($user->role !== 'customer' || !$user->admin_id) {
+            abort(
+                403,
+                'This dashboard is only available to valid customer accounts.'
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | ISP Admin
+        |--------------------------------------------------------------------------
+        |
+        | Load and validate the customer's owning ISP Admin once. The Blade
+        | view does not perform relationship queries itself.
+        |
+        */
+
+        $user->loadMissing('admin');
+
+        $admin = $user->admin;
+
+        if (
+            !$admin
+            || $admin->role !== 'admin'
+            || (int) $admin->id !== (int) $user->admin_id
+        ) {
+            abort(
+                403,
+                'This customer account is not linked to a valid ISP Admin.'
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Active Subscription
+        |--------------------------------------------------------------------------
+        |
+        | Every package has a finite duration. Therefore an active
+        | subscription must always have a future end time.
+        |
+        | Unlimited package speed does not affect subscription expiry.
+        |
+        */
+
+        $activeSubscription = Subscription::query()
+            ->with('package')
+            ->where('user_id', $user->id)
             ->where('status', 'active')
+            ->whereNotNull('end_time')
             ->where('end_time', '>', now())
-            ->latest()
+            ->whereHas('package', function ($query) use ($user) {
+                $query->where('admin_id', $user->admin_id);
+            })
+            ->latest('end_time')
             ->first();
 
-        $hotspotUser = HotspotUser::where('user_id', $user->id)
+        $package = $activeSubscription?->package;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Hotspot / PPPoE Account
+        |--------------------------------------------------------------------------
+        |
+        | hotspot_users is owned through user_id. The authenticated customer
+        | has already been verified as belonging to a valid ISP Admin above.
+        | Therefore the tenant chain is:
+        |
+        | ISP Admin -> Customer -> Hotspot User
+        |
+        | Viewing the dashboard never creates a network session.
+        |
+        */
+
+        $hotspotUser = HotspotUser::query()
+            ->where('user_id', $user->id)
             ->where('status', 'active')
-            ->latest()
+            ->latest('id')
             ->first();
 
-        if ($activeSubscription && $hotspotUser) {
-            HotspotSession::firstOrCreate(
+        /*
+        |--------------------------------------------------------------------------
+        | Customer Payment Statistics
+        |--------------------------------------------------------------------------
+        |
+        | Calculate the completed-payment count and total in one aggregate
+        | query. Only this authenticated customer's payments are included.
+        |
+        */
+
+        $paymentSummary = Payment::query()
+            ->where('user_id', $user->id)
+            ->where('status', 'completed')
+            ->selectRaw(
+                'COUNT(*) as total_purchases, COALESCE(SUM(amount), 0) as total_spent'
+            )
+            ->first();
+
+        $totalPurchases = (int) ($paymentSummary?->total_purchases ?? 0);
+        $totalSpent = (float) ($paymentSummary?->total_spent ?? 0);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Subscription Presentation
+        |--------------------------------------------------------------------------
+        |
+        | Package duration is always finite. Remaining access time is derived
+        | exclusively from the verified subscription end time.
+        |
+        */
+
+        $remainingTime = 'No active package';
+        $expiryDate = 'Expired';
+
+        if (
+            $activeSubscription
+            && $package
+            && $activeSubscription->end_time
+        ) {
+            $endTime = Carbon::parse(
+                $activeSubscription->end_time
+            );
+
+            $expiryDate = $endTime->format(
+                'd M Y H:i'
+            );
+
+            $remainingTime = now()->diffForHumans(
+                $endTime,
                 [
-                    'user_id' => $user->id,
-                    'logout_time' => null,
-                ],
-                [
-                    'mac_address' => null,
-                    'ip_address' => request()->ip(),
-                    'login_time' => now(),
-                    'data_used' => 0,
+                    'parts' => 2,
+                    'short' => true,
+                    'syntax' => Carbon::DIFF_ABSOLUTE,
                 ]
             );
         }
 
-        $totalPurchases = Payment::where('user_id', $user->id)
-            ->where('status', 'completed')
-            ->count();
+        /*
+        |--------------------------------------------------------------------------
+        | ISP Contact Information
+        |--------------------------------------------------------------------------
+        |
+        | Only information intentionally displayed to the ISP's own customer
+        | is passed to the dashboard view.
+        |
+        */
 
-        $totalSpent = Payment::where('user_id', $user->id)
-            ->where('status', 'completed')
-            ->sum('amount');
+        $ispName = $admin->network_name
+            ?: $admin->business_name
+            ?: 'Your Internet Service Provider';
 
-        $remainingTime = 'No active package';
+        $ispPhone = $admin->business_phone
+            ?: 'Not Available';
 
-        if ($activeSubscription) {
-            $endTime = Carbon::parse($activeSubscription->end_time);
-            $remainingTime = now()->diffForHumans($endTime, [
-                'parts' => 2,
-                'short' => true,
-                'syntax' => Carbon::DIFF_ABSOLUTE,
-            ]);
-        }
-
-       $package = null;
-$admin = null;
-
-if ($activeSubscription) {
-
-    $package = $activeSubscription->package;
-
-    if ($package) {
-        $admin = $package->admin;
-    }
-
-}
-
-return view('dashboard', compact(
-    'activeSubscription',
-    'hotspotUser',
-    'totalPurchases',
-    'totalSpent',
-    'remainingTime',
-    'package',
-    'admin'
-));
+        return view('dashboard', [
+            'activeSubscription' => $activeSubscription,
+            'hotspotUser' => $hotspotUser,
+            'totalPurchases' => $totalPurchases,
+            'totalSpent' => $totalSpent,
+            'remainingTime' => $remainingTime,
+            'expiryDate' => $expiryDate,
+            'package' => $package,
+            'ispName' => $ispName,
+            'ispPhone' => $ispPhone,
+        ]);
     }
 }

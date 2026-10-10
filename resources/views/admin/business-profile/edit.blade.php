@@ -9,7 +9,7 @@
 
     <div class="py-10 bg-gray-100 min-h-screen">
 
-        <div class="max-w-6xl mx-auto">
+        <div class="max-w-7xl mx-auto px-4">
 
             @if(session('success'))
                 <div class="mb-6 bg-green-100 border border-green-300 text-green-800 px-5 py-4 rounded-xl">
@@ -20,7 +20,9 @@
 
             @if ($errors->any())
                 <div class="mb-6 bg-red-100 border border-red-300 text-red-700 px-5 py-4 rounded-xl">
-                    <ul class="list-disc ml-5">
+                    <strong>Please fix the following:</strong>
+
+                    <ul class="list-disc ml-5 mt-2">
                         @foreach($errors->all() as $error)
                             <li>{{ $error }}</li>
                         @endforeach
@@ -28,202 +30,244 @@
                 </div>
             @endif
 
-            <form method="POST"
-                  action="{{ route('admin.business-profile.update') }}">
-
+            <form
+                method="POST"
+                action="{{ route('admin.business-profile.update') }}"
+            >
                 @csrf
 
-                <div class="grid lg:grid-cols-3 gap-8">
+                <div class="grid lg:grid-cols-2 gap-8">
 
-                    <div class="lg:col-span-2">
+                    {{-- Business Information --}}
+                    <div class="bg-white rounded-2xl shadow p-8">
 
-                        <div class="bg-white rounded-2xl shadow p-8">
+                        <h3 class="text-xl font-bold mb-6 text-blue-700">
+                            <i class="fas fa-building"></i>
+                            Business Information
+                        </h3>
 
-                            <h3 class="text-xl font-bold mb-6 text-blue-700">
-                                <i class="fas fa-building"></i>
-                                Business Information
-                            </h3>
+                        <div class="mb-5">
+                            <label class="font-semibold">
+                                Business Name
+                            </label>
 
-                            <div class="mb-5">
+                            <input
+                                type="text"
+                                name="business_name"
+                                value="{{ old('business_name', $admin->business_name) }}"
+                                class="w-full mt-2 rounded-lg border-gray-300"
+                                required
+                            >
+                        </div>
+
+                        <div class="mb-5">
+                            <label class="font-semibold">
+                                WiFi / Network Name
+                            </label>
+
+                            <input
+                                type="text"
+                                name="network_name"
+                                value="{{ old('network_name', $admin->network_name) }}"
+                                class="w-full mt-2 rounded-lg border-gray-300"
+                                required
+                            >
+
+                            <small class="text-gray-500">
+                                Example: Korir WiFi
+                            </small>
+                        </div>
+
+                        <div class="grid md:grid-cols-2 gap-5">
+
+                            <div>
                                 <label class="font-semibold">
-                                    Business Name
+                                    Support Phone
                                 </label>
 
                                 <input
                                     type="text"
-                                    name="business_name"
-                                    value="{{ old('business_name',$admin->business_name) }}"
-                                    class="w-full mt-2 rounded-lg border-gray-300">
+                                    name="business_phone"
+                                    value="{{ old('business_phone', $admin->business_phone) }}"
+                                    class="w-full mt-2 rounded-lg border-gray-300"
+                                    required
+                                >
                             </div>
 
-                            <div class="mb-5">
+                            <div>
                                 <label class="font-semibold">
-                                    WiFi / Network Name
+                                    Business Address
                                 </label>
 
                                 <input
                                     type="text"
-                                    name="network_name"
-                                    value="{{ old('network_name',$admin->network_name) }}"
-                                    class="w-full mt-2 rounded-lg border-gray-300">
-
-                                <small class="text-gray-500">
-                                    Example:
-                                    Korir WiFi
-                                </small>
-                            </div>
-
-                            <div class="grid md:grid-cols-2 gap-5">
-
-                                <div>
-
-                                    <label class="font-semibold">
-                                        Support Phone
-                                    </label>
-
-                                    <input
-                                        type="text"
-                                        name="business_phone"
-                                        value="{{ old('business_phone',$admin->business_phone) }}"
-                                        class="w-full mt-2 rounded-lg border-gray-300">
-
-                                </div>
-
-                                <div>
-
-                                    <label class="font-semibold">
-                                        Business Address
-                                    </label>
-
-                                    <input
-                                        type="text"
-                                        name="business_address"
-                                        value="{{ old('business_address',$admin->business_address) }}"
-                                        class="w-full mt-2 rounded-lg border-gray-300">
-
-                                </div>
-
+                                    name="business_address"
+                                    value="{{ old('business_address', $admin->business_address) }}"
+                                    class="w-full mt-2 rounded-lg border-gray-300"
+                                >
                             </div>
 
                         </div>
 
                     </div>
 
-                    <div>
+                    {{-- Customer Payment Information --}}
+                    <div class="bg-white rounded-2xl shadow p-8">
 
-                        <div class="bg-white rounded-2xl shadow p-8">
+                        <h3 class="text-xl font-bold text-green-700 mb-5">
+                            <i class="fas fa-money-bill-wave"></i>
+                            Customer Payment Information
+                        </h3>
 
-                            <h3 class="text-xl font-bold text-green-700 mb-5">
+                        <p class="text-sm text-gray-500 mb-6">
+                            These are the payment details your customers can see
+                            when paying for WiFi packages.
+                        </p>
 
-                                <i class="fas fa-money-bill-wave"></i>
+                        <div class="mb-5">
 
-                                Payment Information
+                            <label class="font-semibold">
+                                Payment Type
+                            </label>
 
-                            </h3>
-
-                            <div class="mb-5">
-
-                                <label class="font-semibold">
-
-                                    Payment Type
-
-                                </label>
-
-                                <select
-                                    name="payment_type"
-                                    class="w-full mt-2 rounded-lg border-gray-300">
-
-                                    <option value="till"
-                                        {{ $admin->payment_type=="till" ? "selected":"" }}>
-                                        Till Number
-                                    </option>
-
-                                    <option value="paybill"
-                                        {{ $admin->payment_type=="paybill" ? "selected":"" }}>
-                                        Paybill
-                                    </option>
-
-                                    <option value="phone"
-                                        {{ $admin->payment_type=="phone" ? "selected":"" }}>
-                                        Send Money
-                                    </option>
-
-                                </select>
-
-                            </div>
-
-                            <div class="mb-5">
-
-                                <label class="font-semibold">
-
+                            <select
+                                name="payment_type"
+                                id="payment_type"
+                                class="w-full mt-2 rounded-lg border-gray-300"
+                                required
+                            >
+                                <option
+                                    value="till"
+                                    {{ old('payment_type', $admin->payment_type) == 'till' ? 'selected' : '' }}
+                                >
                                     Till Number
+                                </option>
 
-                                </label>
+                                <option
+                                    value="paybill"
+                                    {{ old('payment_type', $admin->payment_type) == 'paybill' ? 'selected' : '' }}
+                                >
+                                    PayBill
+                                </option>
 
-                                <input
-                                    type="text"
-                                    name="business_till"
-                                    value="{{ old('business_till',$admin->business_till) }}"
-                                    class="w-full mt-2 rounded-lg border-gray-300">
+                                <option
+                                    value="phone"
+                                    {{ old('payment_type', $admin->payment_type) == 'phone' ? 'selected' : '' }}
+                                >
+                                    Send Money
+                                </option>
+                            </select>
 
-                            </div>
+                        </div>
+
+                        <div id="till_fields" class="mb-5">
+
+                            <label class="font-semibold">
+                                Till Number
+                            </label>
+
+                            <input
+                                type="text"
+                                name="business_till"
+                                value="{{ old('business_till', $admin->business_till) }}"
+                                class="w-full mt-2 rounded-lg border-gray-300"
+                                placeholder="Example: 123456"
+                            >
+
+                        </div>
+
+                        <div id="paybill_fields">
 
                             <div class="mb-5">
 
                                 <label class="font-semibold">
-
-                                    Paybill Number
-
+                                    PayBill Number
                                 </label>
 
                                 <input
                                     type="text"
                                     name="business_paybill"
-                                    value="{{ old('business_paybill',$admin->business_paybill) }}"
-                                    class="w-full mt-2 rounded-lg border-gray-300">
+                                    value="{{ old('business_paybill', $admin->business_paybill) }}"
+                                    class="w-full mt-2 rounded-lg border-gray-300"
+                                    placeholder="Example: 400200"
+                                >
 
                             </div>
 
                             <div class="mb-5">
 
                                 <label class="font-semibold">
-
                                     Account Number
-
                                 </label>
 
                                 <input
                                     type="text"
                                     name="business_account"
-                                    value="{{ old('business_account',$admin->business_account) }}"
-                                    class="w-full mt-2 rounded-lg border-gray-300">
+                                    value="{{ old('business_account', $admin->business_account) }}"
+                                    class="w-full mt-2 rounded-lg border-gray-300"
+                                    placeholder="Example: WIFI123"
+                                >
 
                             </div>
 
-                            <div class="bg-yellow-100 border border-yellow-300 rounded-xl p-4">
+                        </div>
 
-                                <h4 class="font-bold text-yellow-800">
+                        <div id="phone_fields" class="mb-5">
 
-                                    <i class="fas fa-triangle-exclamation"></i>
+                            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
 
-                                    Important
-
+                                <h4 class="font-bold text-blue-800">
+                                    <i class="fas fa-mobile-screen-button"></i>
+                                    Send Money
                                 </h4>
 
-                                <p class="text-sm text-yellow-800 mt-2">
-
-                                    Customers will pay using these payment
-                                    details.
-
-                                    They will appear on receipts,
-                                    checkout page,
-                                    captive portal,
-                                    payment instructions
-                                    and activation screen.
-
+                                <p class="text-sm text-blue-800 mt-2">
+                                    Customers will use the support phone number
+                                    above when this payment option is selected.
                                 </p>
 
                             </div>
+
+                        </div>
+
+                        <div class="bg-yellow-100 border border-yellow-300 rounded-xl p-4">
+
+                            <h4 class="font-bold text-yellow-800">
+                                <i class="fas fa-triangle-exclamation"></i>
+                                Payment Details
+                            </h4>
+
+                            <p class="text-sm text-yellow-800 mt-2">
+                                These details belong only to your ISP business.
+                                Customers linked to your account will see your
+                                payment information, not another Admin's details.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    {{-- Payment Automation Status --}}
+                    <div class="lg:col-span-2 bg-white rounded-2xl shadow p-8">
+
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">
+                            <i class="fas fa-shield-halved text-blue-600"></i>
+                            Automatic Customer Payment Activation
+                        </h3>
+
+                        <div class="bg-blue-50 border border-blue-200 rounded-xl p-5">
+
+                            <p class="text-blue-900 font-semibold">
+                                Automatic customer M-Pesa activation is currently
+                                not enabled.
+                            </p>
+
+                            <p class="text-sm text-blue-800 mt-2">
+                                Customers can use the payment details configured
+                                above. Automatic payment confirmation and package
+                                activation will be added after the customer payment
+                                provider architecture is finalized.
+                            </p>
 
                         </div>
 
@@ -234,12 +278,11 @@
                 <div class="mt-8">
 
                     <button
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold">
-
+                        type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold"
+                    >
                         <i class="fas fa-floppy-disk"></i>
-
                         Save Business Profile
-
                     </button>
 
                 </div>
@@ -249,5 +292,31 @@
         </div>
 
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const paymentType = document.getElementById('payment_type');
+            const tillFields = document.getElementById('till_fields');
+            const paybillFields = document.getElementById('paybill_fields');
+            const phoneFields = document.getElementById('phone_fields');
+
+            function updatePaymentFields() {
+                const selected = paymentType.value;
+
+                tillFields.style.display =
+                    selected === 'till' ? 'block' : 'none';
+
+                paybillFields.style.display =
+                    selected === 'paybill' ? 'block' : 'none';
+
+                phoneFields.style.display =
+                    selected === 'phone' ? 'block' : 'none';
+            }
+
+            paymentType.addEventListener('change', updatePaymentFields);
+
+            updatePaymentFields();
+        });
+    </script>
 
 </x-app-layout>

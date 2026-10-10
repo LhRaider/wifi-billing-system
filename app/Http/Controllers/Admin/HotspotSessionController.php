@@ -10,31 +10,52 @@ class HotspotSessionController extends Controller
 {
     public function index(Request $request)
     {
-        $search = $request->search;
+        $admin = auth()->user();
 
-        if (auth()->user()->role === 'super_admin') {
-            $sessions = HotspotSession::whereRaw('1 = 0')->paginate(10);
+        abort_unless(
+            $admin && $admin->role === 'admin',
+            403,
+            'Only ISP Admins can access hotspot sessions.'
+        );
 
-            return view('admin.hotspot-sessions.index', compact('sessions', 'search'));
-        }
+        $search = trim((string) $request->input('search'));
 
-        $sessions = HotspotSession::with('user')
-            ->whereHas('user', function ($query) {
-                $query->where('admin_id', auth()->id());
+        $sessions = HotspotSession::with([
+                'user',
+                'router',
+            ])
+            ->whereHas('user', function ($query) use ($admin) {
+                $query->where('role', 'customer')
+                    ->where('admin_id', $admin->id);
             })
-            ->when($search, function ($query) use ($search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('ip_address', 'like', "%{$search}%")
+            ->where(function ($query) use ($admin) {
+                $query->whereNull('router_id')
+                    ->orWhereHas('router', function ($routerQuery) use ($admin) {
+                        $routerQuery->where('admin_id', $admin->id);
+                    });
+            })
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($searchQuery) use ($search) {
+                    $searchQuery
+                        ->where('ip_address', 'like', "%{$search}%")
                         ->orWhere('mac_address', 'like', "%{$search}%")
-                        ->orWhereHas('user', function ($u) use ($search) {
-                            $u->where('name', 'like', "%{$search}%")
-                              ->orWhere('email', 'like', "%{$search}%");
+                        ->orWhereHas('user', function ($userQuery) use ($search) {
+                            $userQuery
+                                ->where('name', 'like', "%{$search}%")
+                                ->orWhere('email', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('router', function ($routerQuery) use ($search) {
+                            $routerQuery->where('name', 'like', "%{$search}%");
                         });
                 });
             })
-            ->latest()
-            ->paginate(10);
+            ->latest('login_time')
+            ->paginate(10)
+            ->withQueryString();
 
-        return view('admin.hotspot-sessions.index', compact('sessions', 'search'));
+        return view(
+            'admin.hotspot-sessions.index',
+            compact('sessions', 'search')
+        );
     }
 }

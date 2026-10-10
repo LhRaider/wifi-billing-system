@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Router extends Model
 {
@@ -18,9 +19,41 @@ class Router extends Model
         'is_active',
     ];
 
+    protected $hidden = [
+        'password',
+    ];
+
     protected $casts = [
         'is_active' => 'boolean',
+
+        /*
+         * Encrypt the MikroTik password in the database.
+         * Laravel will automatically decrypt it when the
+         * application reads $router->password.
+         */
+        'password' => 'encrypted',
     ];
+
+    /**
+     * Automatically generate a secure public portal token
+     * whenever a new router is created.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (Router $router) {
+            if (!$router->portal_token) {
+                do {
+                    $token = Str::random(64);
+                } while (
+                    static::query()
+                        ->where('portal_token', $token)
+                        ->exists()
+                );
+
+                $router->portal_token = $token;
+            }
+        });
+    }
 
     public function admin()
     {

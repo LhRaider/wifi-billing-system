@@ -8,6 +8,7 @@ class HotspotSession extends Model
 {
     protected $fillable = [
         'user_id',
+        'router_id',
         'mac_address',
         'ip_address',
         'login_time',
@@ -18,10 +19,16 @@ class HotspotSession extends Model
     protected $casts = [
         'login_time' => 'datetime',
         'logout_time' => 'datetime',
+        'data_used' => 'integer',
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function router()
+    {
+        return $this->belongsTo(Router::class);
     }
 }

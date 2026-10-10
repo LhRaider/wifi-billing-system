@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
-use App\Models\HotspotSession;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,23 +28,16 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        return redirect()->intended(
+            route('dashboard', absolute: false)
+        );
     }
 
     /**
-     * Destroy an authenticated session.
+     * Destroy an authenticated web session.
      */
     public function destroy(Request $request): RedirectResponse
     {
-        if (Auth::check()) {
-            HotspotSession::where('user_id', Auth::id())
-                ->whereNull('logout_time')
-                ->latest()
-                ->first()?->update([
-                    'logout_time' => now(),
-                ]);
-        }
-
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
